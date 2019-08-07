@@ -20,10 +20,10 @@ import imagezmq
 
 # use either of the formats below to specifiy address of display computer
 # sender = imagezmq.ImageSender(connect_to='tcp://jeff-macbook:5555')
-sender = imagezmq.ImageSender(connect_to='tcp://192.168.1.190:5555')
+sender = imagezmq.ImageSender(connect_to='tcp://A-NPC-000072:5555')
 
 rpi_name = socket.gethostname()  # send RPi hostname with each image
-picam = VideoStream(usePiCamera=True).start()
+picam = VideoStream(src=0).start()
 time.sleep(2.0)  # allow camera sensor to warm up
 while True:  # send images as stream until Ctrl-C
     image = picam.read()
