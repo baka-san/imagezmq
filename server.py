@@ -1,22 +1,52 @@
 import sys
 import os
-zmq_path = os.path.expanduser('~/') + 'imagezmq/imagezmq'
-sys.path.insert(0, zmq_path)  # imagezmq.py /imagezmq
+import pathlib
+import argparse
 import time
 import darknet as dn
 import numpy as np
 import cv2
-import imagezmq
 from PIL import Image, ImageFile
 
+# A few variables
+zmq_default = os.path.expanduser('~/') + 'imagezmq'
+cwd = os.getcwd()
+results_default = cwd + '/results/frames/'
+
+# Parse arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("--zmq", help="Full path to imagezmq main folder (defalut: ~/imagezmq).", default=zmq_default)
+ap.add_argument("--cfg", help="Relative path to cfg file.", required=True)
+ap.add_argument("--weights", help="Relative path to weights file.", required=True)
+ap.add_argument("--data", help="Relative path to data file.", required=True)
+ap.add_argument("--results", help="Relative path to results folder in format dir_1/dir_2/ (default: path_to_current_dir/results/frames/")
+ap.add_argument("--save_original_img", help="Save original image without bounding box (default: false).", default=False)
+
+args = ap.parse_args()
+
+# Import imagezmq
+zmq_path = args.zmq + '/imagezmq'
+sys.path.insert(0, zmq_path)  # imagezmq.py /imagezmq
+import imagezmq
+
+# Load the darknet
 ImageFile.MAXBLOCK = 2**20
 image_hub = imagezmq.ImageHub()
 total_time = 0
 frame_count = 0
 dn.set_gpu(0)
-net = dn.load_net(b'cfg/yolov3-safety-vest.cfg', b'backup/yolov3-safety-vest_9000.weights', 0)
-meta = dn.load_meta(b'safety-vest.data')
-results_path = os.path.expanduser('~/') + 'yolo/darknet/results/frames/'
+net = dn.load_net(bytes(args.cfg, encoding='utf-8'), bytes(args.weights, encoding='utf-8'), 0)
+meta = dn.load_meta(bytes(args.data, encoding='utf-8'))
+
+# Set the results path and make it if it doesn't exist
+if args.results:
+  results_path = cwd + '/' + args.results
+else:
+  results_path = results_default
+
+os.makedirs(results_path, exist_ok=True) 
+
+# We're ready to go!
 print('Neural net loaded. Ready for frames.')
 
 def drawBoundingBoxes(detections, image):
@@ -57,7 +87,7 @@ def drawBoundingBoxes(detections, image):
 
   return result
 
-
+# Handle the received images
 try:
   while True:  # show streamed images until Ctrl-C
     # Receive frame
@@ -69,6 +99,16 @@ try:
 
     # Decode the image
     image = cv2.imdecode(np.fromstring(jpg_buffer, dtype='uint8'), -1)
+
+    # Save original image
+    if args.save_original_img:
+      try:
+        file_path = results_path + 'frame-' + str(frame_count) + '-original.jpg'
+        print('Filename: ', file_path)
+        cv2.imwrite(file_path, image)
+
+      except Exception as e:
+        print("Couldn't save file: ", e)
 
     # Save image resolution
     if frame_count == 0:
