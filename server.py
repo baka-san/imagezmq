@@ -40,7 +40,17 @@ meta = dn.load_meta(bytes(args.data, encoding='utf-8'))
 
 # Set the results path and make it if it doesn't exist
 if args.results:
+  #If the user included a forward slash at the start of the relative path, cut it
+  if args.results[0] == '/':
+    args.results = args.results[1:]
+
+  # Make the relative path into an absolute path
   results_path = cwd + '/' + args.results
+
+  # If the user forgot the trailing forward slash cut it
+  if not args.results[-1:] == '/':
+    results_path = results_path + '/'
+
 else:
   results_path = results_default
 
@@ -109,6 +119,9 @@ try:
 
       except Exception as e:
         print("Couldn't save file: ", e)
+
+    # Convert BGR (OpenCV) to RGB (Yolo)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     # Save image resolution
     if frame_count == 0:

@@ -19,7 +19,7 @@ import time
 import argparse
 import cv2
 from imutils.video import VideoStream
-import imagezmq
+from imagezmq import imagezmq 
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
